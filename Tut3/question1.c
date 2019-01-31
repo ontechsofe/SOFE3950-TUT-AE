@@ -11,4 +11,5 @@ int main(void)
     printf("Please enter height in centimeters: ");
     scanf("%d", &height);
     printf("Hi %s, you are %d, and you are %dcm tall\n", name, age, height);
+    return 0;
 }   
