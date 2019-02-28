@@ -13,9 +13,11 @@
 #define BG_BLUE_FG_YELLOW "\033[0m\033[93;44m"
 #define BG_PURPLE_FG_WHITE "\033[0m\033[97;45m"
 #define BG_PURPLE_BRIGHT_FG_WHITE "\033[0m\033[97;105m"
+#define TEXTBOX "\033[0m\033[96;100m"
 
 // Vertical Padding Macro
 #define VERTICAL_PADDING(x) for(int i = 0; i < x; i++) {for (int j = 0; j < width; j++) {printf(" ");}printf("\n");}
+#define HORIZONTAL_PADDING(x) for (int i = 0; i < x; i++) {printf(" ");}
 
 //Key-bind for interface movement
 #define KEY_LEFT 104
@@ -35,7 +37,6 @@
 enum GAME_STATE {GAME_QUIT, GAME_SPLASH_MENU, GAME_HELP, GAME_PLAYER_SELECTION, GAME_MAIN} GAME_STATE;
 
 char *splashGameMenu[] = {"Start Game", "HELP", "Quit"};
-
 
 // adding getch because linux doesn't have conio
 int getch(void) {
@@ -81,6 +82,19 @@ void center(char *s, int w, char *format, int isWithFormatting, int actualLength
         printf("%s", s);
         for (int i = 0; i < padding; i++) { printf(" "); }
         printf("%s\n", format);
+}
+
+void printTextbox(char *s, int w, int length) {
+        int padding = (w - length) / 2;
+        int stlen = utf8_strlen(s);
+        HORIZONTAL_PADDING(padding);
+        printf("%s%s", TEXTBOX, s);
+        for (int i = 0; i < (length - stlen); i++) {
+                printf(" ");
+        }
+        printf("%s", BG_PURPLE_FG_WHITE);
+        HORIZONTAL_PADDING(padding);
+        printf("\n");
 }
 
 int printMainMenu(int width, int selectedMenuItem) {
@@ -180,13 +194,16 @@ void printPlayerCountScreen(int width, int height, int selectedNumOfPlayers) {
 
 void printPlayerNameEntryScreen(int width, int height, int playerNum) {
         char outstr[BUFFER_LEN];
+        char *name = "ETHAN";
         printf("%s\n", BG_PURPLE_FG_WHITE);
         VERTICAL_PADDING((height/4) - 8);
         printJeopardyLogo(width, BG_PURPLE_FG_WHITE);
         VERTICAL_PADDING(height/4);
-        sprintf(outstr, "WHAT'S YOUR NAME, PLAYER %d?", playerNum);
+        sprintf(outstr, "WHAT'S YOUR NAME, PLAYER %d?", playerNum + 1);
         center(outstr, width, BG_PURPLE_FG_WHITE, 0, 0);
-        VERTICAL_PADDING((height/2) - 1);
+        VERTICAL_PADDING(4);
+        printTextbox(name, width, 30);
+        VERTICAL_PADDING((height/2) - 6);
 }
 
 int main(int argc, char *argv[]) {
@@ -199,6 +216,8 @@ int main(int argc, char *argv[]) {
         int playerSelectState = 0;
         int selectedNumOfPlayers = 0;
         int numOfPlayers = 0;
+
+        int currentPlayerNameEntry = 0;
 
         // Main loop
         while(isRunning) {
@@ -283,7 +302,7 @@ int main(int argc, char *argv[]) {
                                                 break;
                                         case 1:
                                                 printf("\033[1;1H");
-                                                printPlayerNameEntryScreen(getConsoleWidth(), getConsoleHeight());
+                                                printPlayerNameEntryScreen(getConsoleWidth(), getConsoleHeight(), currentPlayerNameEntry);
                                                 printf("\033[1;1H");
                                                 switch (getch()) {
                                                         case KEY_QUIT:
