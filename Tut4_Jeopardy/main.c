@@ -10,6 +10,7 @@
 
 // Colour is [FG;BGm
 #define BG_BLUE_FG_WHITE "\033[0m\033[97;44m"
+#define BG_BLACK_FG_GREEN "\033[0m\033[92;40m"
 #define BG_BLUE_FG_YELLOW "\033[0m\033[93;44m"
 #define BG_PURPLE_FG_WHITE "\033[0m\033[97;45m"
 #define BG_PURPLE_BRIGHT_FG_WHITE "\033[0m\033[97;105m"
@@ -26,15 +27,20 @@
 #define KEY_DOWN 106
 #define KEY_QUIT 113
 #define KEY_SELECT 32
-
+#define KEY_ENTER 10
 //buffer 
 #define BUFFER_LEN 256
 
 // game consts
-#define NUM_PLAYERS 4
+#define PLAYSOUND 0
 
 // Global vars
-enum GAME_STATE {GAME_QUIT, GAME_SPLASH_MENU, GAME_HELP, GAME_PLAYER_SELECTION, GAME_MAIN} GAME_STATE;
+enum GAME_STATE {GAME_QUIT, GAME_SPLASH_MENU, GAME_HELP, GAME_PLAYER_SELECTION, 
+GAME_BOARD,
+GAME_QUESTION,
+GAME_PLAYERS,
+GAME_MAIN
+} GAME_STATE;
 
 char *splashGameMenu[] = {"Start Game", "HELP", "Quit"};
 
@@ -60,6 +66,14 @@ size_t utf8_strlen(const char *s) {
     return count;
 }
 
+void sayThis(char *s) {
+        if (PLAYSOUND == 1) {
+                char buf[BUFFER_LEN];
+                sprintf(buf, "./tts/gnuspeech_sa -c ./tts/data/en -p /tmp/jeopardy.txt -o /tmp/jeopardy.wav \"%s\" && aplay -q /tmp/jeopardy.wav", s);
+                system(buf);
+        }
+}
+
 int getConsoleWidth() {
         struct winsize w;
         ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
@@ -72,16 +86,21 @@ int getConsoleHeight() {
         return w.ws_row;
 }
 
-void center(char *s, int w, char *format, int isWithFormatting, int actualLength) {
+void centerNoNewline(char *s, int w, char *format, int isWithFormatting, int actualLength) {
         int stringLength = 0;
         if (isWithFormatting == 1) {stringLength = actualLength;} else {stringLength = utf8_strlen(s);}
         int padding = (w-stringLength)/2;
         // printf("%d, %d, %d", w, strlen(s), padding);
         printf("%s", format);
-        for (int i = 0; i < padding; i++) { printf(" "); }
+        HORIZONTAL_PADDING(padding);
         printf("%s", s);
-        for (int i = 0; i < padding; i++) { printf(" "); }
-        printf("%s\n", format);
+        HORIZONTAL_PADDING(padding);
+        printf("%s", format);
+}
+
+void center(char *s, int w, char *format, int isWithFormatting, int actualLength) {
+        centerNoNewline(s, w, format, isWithFormatting, actualLength);
+        printf("\n");
 }
 
 void printTextbox(char *s, int w, int length) {
@@ -89,9 +108,7 @@ void printTextbox(char *s, int w, int length) {
         int stlen = utf8_strlen(s);
         HORIZONTAL_PADDING(padding);
         printf("%s%s", TEXTBOX, s);
-        for (int i = 0; i < (length - stlen); i++) {
-                printf(" ");
-        }
+        HORIZONTAL_PADDING(length - stlen);
         printf("%s", BG_PURPLE_FG_WHITE);
         HORIZONTAL_PADDING(padding);
         printf("\n");
@@ -171,7 +188,9 @@ void printSplashScreen(int width, int height, int selectedMenuItem) {
         printJeopardyLogo(width, BG_BLUE_FG_WHITE);
         VERTICAL_PADDING(6);
         int menuHeight = printMainMenu(width, selectedMenuItem);
-        VERTICAL_PADDING((height/2) - (menuHeight+6));
+        VERTICAL_PADDING(3);
+        center("use [J,K] to select, and [ENTER] to confirm", width, BG_BLUE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING((height/2) - (menuHeight + 10));
 }
 
 void printPlayerCountScreen(int width, int height, int selectedNumOfPlayers) {
@@ -184,7 +203,7 @@ void printPlayerCountScreen(int width, int height, int selectedNumOfPlayers) {
         int player_button_lines = printPlayerNumberButtons(width, selectedNumOfPlayers);
         if (selectedNumOfPlayers != 0) {
                 VERTICAL_PADDING(3);
-                center("Press [SPACE] to confirm", width, BG_PURPLE_FG_WHITE, 0, 0);
+                center("Press [ENTER] to confirm", width, BG_PURPLE_FG_WHITE, 0, 0);
                 VERTICAL_PADDING((height/2) - (player_button_lines + 8));
         } else {
                 VERTICAL_PADDING((height/2) - (player_button_lines + 4));
@@ -192,9 +211,8 @@ void printPlayerCountScreen(int width, int height, int selectedNumOfPlayers) {
         
 }
 
-void printPlayerNameEntryScreen(int width, int height, int playerNum) {
+void printPlayerNameEntryScreen(int width, int height, int playerNum, char* name) {
         char outstr[BUFFER_LEN];
-        char *name = "ETHAN";
         printf("%s\n", BG_PURPLE_FG_WHITE);
         VERTICAL_PADDING((height/4) - 8);
         printJeopardyLogo(width, BG_PURPLE_FG_WHITE);
@@ -203,21 +221,179 @@ void printPlayerNameEntryScreen(int width, int height, int playerNum) {
         center(outstr, width, BG_PURPLE_FG_WHITE, 0, 0);
         VERTICAL_PADDING(4);
         printTextbox(name, width, 30);
-        VERTICAL_PADDING((height/2) - 6);
+        VERTICAL_PADDING(3);
+        center("Press [ENTER] to confirm name", width, BG_PURPLE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING((height/2) - 10);
+}
+
+void printPlayerConfirmScreen(int width, int height, int numPlayers, char playerNames[4][BUFFER_LEN]) {
+        printf("%s\n", BG_PURPLE_FG_WHITE);
+        VERTICAL_PADDING((height/4) - 8);
+        printJeopardyLogo(width, BG_PURPLE_FG_WHITE);
+        VERTICAL_PADDING(height/4);
+        center("Does everything look good??", width, BG_PURPLE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING(3);
+        int tablePadding = 2;
+        center("╔══════════╤════════════════════════════════╗", width, BG_PURPLE_FG_WHITE, 0, 0);
+        for (int i = 0; i < numPlayers; i++) {
+                char curNameBuf[BUFFER_LEN];
+                sprintf(curNameBuf, "║ Player %d │ %-30s ║", (i+1), playerNames[i]);
+                center(curNameBuf, width, BG_PURPLE_FG_WHITE, 0, 0);
+                tablePadding++;
+                if (i != numPlayers - 1) {
+                        tablePadding++;
+                        center("╟──────────┼────────────────────────────────╢", width, BG_PURPLE_FG_WHITE, 0, 0);
+                }
+        }
+        center("╚══════════╧════════════════════════════════╝", width, BG_PURPLE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING(3);
+        center("Press [ENTER] to confirm or [Q] to go back", width, BG_PURPLE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING((height/2) - (8 + tablePadding));
+}
+
+void printGameBoard(int width, int height, int selectedX, int selectedY, char theBoard[7][7][BUFFER_LEN]) {
+        int di = (width - 2) / 6;
+        int hi = (height - 8) / 6;
+        int padding = (width - ((di)*6))/2;
+        int realWidth = di * 6;
+        int realHeight = hi * 6;
+        int widthDiv = (realWidth - 2) / 6;
+        int heightDiv = (realHeight) / 6;
+        VERTICAL_PADDING(2);
+        center("JEOPARDY GAME BOARD", width, BG_BLUE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING(2);
+        // center("ETHAN, you are picking.", width, BG_BLUE_FG_WHITE, 0, 0);
+        HORIZONTAL_PADDING(padding);
+        printf("╔");
+        for (int i = 0; i < realWidth - 2; i++) {
+                if (i % widthDiv == 0 && i != 0 && (i != (widthDiv * 6))) { printf("╤"); } else { printf("═"); }
+        }
+        printf("╗");
+        HORIZONTAL_PADDING(padding);
+        printf("\n");
+        for (int i = 0; i < heightDiv; i++) {
+                HORIZONTAL_PADDING(padding);
+                printf("║");
+                int isPrintTitle = 0;
+                for (int j = 0; j < realWidth - 2; j++) {
+                        if (j % widthDiv == 0 && j != 0 && (j != (widthDiv * 6))) { 
+                                printf("│"); 
+                                isPrintTitle = 0;
+                        } else { 
+                                if (isPrintTitle != 1) {
+                                        if (i == 3) {
+                                                isPrintTitle = 1;
+                                                centerNoNewline(" CAT ", widthDiv - 1, BG_BLUE_FG_WHITE, 0, widthDiv);
+                                        } else {
+                                                printf(" "); 
+                                        }
+                                }
+                        }
+                }
+                printf("║");
+                HORIZONTAL_PADDING(padding);
+                printf("\n");
+        }
+        HORIZONTAL_PADDING(padding);
+        printf("╟");
+        for (int j = 0; j < realWidth - 2; j++) {
+                if (j % widthDiv == 0 && j != 0 && (j != (widthDiv * 6))) { printf("┼"); } else { printf("─"); }
+        }
+        printf("╢");
+        HORIZONTAL_PADDING(padding);
+        printf("\n");
+        for (int k = 0; k < 5; k++) {
+                for (int i = 0; i < heightDiv; i++) {
+                        HORIZONTAL_PADDING(padding);
+                        printf("║");
+                        for (int j = 0; j < realWidth - 2; j++) {
+                                if (j % widthDiv == 0 && j != 0 && (j != (widthDiv * 6))) { printf("│"); } else { printf(" "); }
+                        }
+                        printf("║");
+                        HORIZONTAL_PADDING(padding);
+                        printf("\n");
+                }
+                if (k != 4) {
+                        HORIZONTAL_PADDING(padding);
+                        printf("╟");
+                        for (int j = 0; j < realWidth - 2; j++) {
+                                if (j % widthDiv == 0 && j != 0 && (j != (widthDiv * 6))) { printf("┼"); } else { printf("─"); }
+                        }
+                        printf("╢");
+                        HORIZONTAL_PADDING(padding);
+                        printf("\n");
+                }
+        }
+        HORIZONTAL_PADDING(padding);
+        printf("╚");
+        for (int i = 0; i < realWidth - 2; i++) {
+                if (i % widthDiv == 0 && i != 0 && (i != (widthDiv * 6))) { printf("╧"); } else { printf("═"); }
+        }
+        printf("╝");
+        HORIZONTAL_PADDING(padding);
+}
+
+void printMainGameScreen(int width, int height, char theBoard[7][7][BUFFER_LEN]) {
+        printf("%s", BG_BLUE_FG_WHITE);
+        printGameBoard(width, height, 0, 0, theBoard);
+}
+
+void printGameBoardScreen(int width, int height) {
+        printf("%s\n", BG_BLUE_FG_WHITE);
+        VERTICAL_PADDING((height));
 }
 
 int main(int argc, char *argv[]) {
         printf("\033[?47h\n");
 
+        char* gameFile = "./questions/1.q";
+
         int isRunning = 1; // is looping
+        int hasSaidIntro = 0;
         int gameState = GAME_SPLASH_MENU; // Based on GAME_STATE enum
         int mainMenuSelectedItem = 0; // splash menu selected item
 
         int playerSelectState = 0;
         int selectedNumOfPlayers = 0;
+
+        char playerNames[4][BUFFER_LEN] = {"", "", "", ""};
         int numOfPlayers = 0;
 
         int currentPlayerNameEntry = 0;
+        char currentPlayerName[BUFFER_LEN];
+
+        char gameBoardQuestions[7][7][BUFFER_LEN];
+        char gameBoardAnswers[7][7][BUFFER_LEN];
+
+
+        FILE *f = fopen(gameFile, "r");
+        char readingLine[BUFFER_LEN];
+        int lineCounter = 0;
+        int categoryCounter = 0;
+        int questionCounter = 0;
+        while(fgets(readingLine, sizeof(readingLine), f)) {
+                if (lineCounter % 6 == 0) {
+                        char category[BUFFER_LEN];
+                        sscanf(readingLine, "%s", category);
+                        strcpy(gameBoardQuestions[categoryCounter][0], category);
+                        strcpy(gameBoardAnswers[categoryCounter][0], category);
+                        questionCounter = 1;
+                } else {
+                        char *question;
+                        char *answer;
+                        const char delim[4] = "|*|";
+                        question = strtok(readingLine, delim);
+                        answer = strtok(NULL, delim);
+                        strcpy(gameBoardQuestions[categoryCounter][questionCounter], question);
+                        strcpy(gameBoardAnswers[categoryCounter][questionCounter], answer);
+                        gameBoardAnswers[categoryCounter][questionCounter][strlen(gameBoardAnswers[categoryCounter][questionCounter]) - 1] = '\0';
+                        questionCounter++;
+                        if (questionCounter > 5) {
+                                categoryCounter++;
+                        }
+                }
+                lineCounter++;
+        }
 
         // Main loop
         while(isRunning) {
@@ -239,6 +415,10 @@ int main(int argc, char *argv[]) {
                         case GAME_SPLASH_MENU:
                                 printf("\033[1;1H");
                                 printSplashScreen(getConsoleWidth(), getConsoleHeight(), mainMenuSelectedItem);
+                                if (hasSaidIntro == 0) {
+                                        sayThis("This. Is. Jeopardy.");
+                                        hasSaidIntro = 1;
+                                }
                                 printf("\033[1;1H");
                                 char ch = getch();
                                 // key selection using vim shortcuts :)
@@ -257,17 +437,17 @@ int main(int argc, char *argv[]) {
                                                         mainMenuSelectedItem += 1;
                                                 }
                                                 break;
-                                        case KEY_SELECT:
+                                        case KEY_ENTER:
                                                 switch (mainMenuSelectedItem) {
-                                                        case 0: gameState = GAME_PLAYER_SELECTION; break;
+                                                        case 0: gameState = GAME_PLAYER_SELECTION; playerSelectState = 0; break;
                                                         case 1: gameState = GAME_HELP; break;
                                                         case 2: gameState = GAME_QUIT; break;
                                                 }
                                                 break;
-                                        default:
-                                                printf("\n\n[%d]\n\n", ch);
-                                                getch();
-                                                break;
+                                        // default:
+                                        //         printf("\n\n[%d]\n\n", ch);
+                                        //         getch();
+                                        //         break;
                                 }
                                 printf(".\033[0m\033[2J");
                                 break;
@@ -290,9 +470,13 @@ int main(int argc, char *argv[]) {
                                                         case 52:
                                                                 selectedNumOfPlayers = 4;
                                                                 break;
-                                                        case KEY_SELECT:
+                                                        case KEY_ENTER:
                                                                 if (selectedNumOfPlayers != 0) {
                                                                         playerSelectState++;
+                                                                        numOfPlayers = selectedNumOfPlayers;
+                                                                        selectedNumOfPlayers = 0;
+                                                                        currentPlayerNameEntry = 0;
+                                                                        currentPlayerName[0] = '\0';
                                                                 }
                                                                 break;
                                                         case KEY_QUIT:
@@ -302,21 +486,66 @@ int main(int argc, char *argv[]) {
                                                 break;
                                         case 1:
                                                 printf("\033[1;1H");
-                                                printPlayerNameEntryScreen(getConsoleWidth(), getConsoleHeight(), currentPlayerNameEntry);
+                                                printPlayerNameEntryScreen(getConsoleWidth(), getConsoleHeight(), currentPlayerNameEntry, currentPlayerName);
+                                                printf("\033[1;1H");
+                                                char ch = getch();
+                                                switch (ch) {
+                                                        case KEY_ENTER:
+                                                                if (currentPlayerNameEntry == (numOfPlayers - 1)) {
+                                                                        playerSelectState++;
+                                                                }
+                                                                strcpy(playerNames[currentPlayerNameEntry], currentPlayerName);
+                                                                currentPlayerName[0] = '\0';
+                                                                currentPlayerNameEntry++;
+                                                                break;
+                                                        default:
+                                                                if (((ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122) || ch == 32) && strlen(currentPlayerName) <= 30) {
+                                                                        char cpbuf[BUFFER_LEN] = "";
+                                                                        strcpy(cpbuf, currentPlayerName);
+                                                                        sprintf(currentPlayerName, "%s%c", cpbuf, ch);
+                                                                } else if (ch == 127) {
+                                                                        currentPlayerName[strlen(currentPlayerName) - 1] = '\0';
+                                                                }
+                                                                break;
+                                                }
+                                                break;
+                                        case 2:
+                                                printf("\033[1;1H");
+                                                printPlayerConfirmScreen(getConsoleWidth(), getConsoleHeight(), numOfPlayers, playerNames);
                                                 printf("\033[1;1H");
                                                 switch (getch()) {
                                                         case KEY_QUIT:
                                                                 gameState = GAME_SPLASH_MENU;
+                                                                break;
+                                                        case KEY_ENTER:
+                                                                gameState = GAME_MAIN;
+                                                                sayThis("Welcome everyone. It's time to play jeopardy. Let's look at the categories.");
                                                                 break;
                                                 }
                                                 break;
                                 }
                                 printf(".\033[0m\033[2J");
                                 break;
-                        case GAME_MAIN:
-                                printf("GAME_MAIN");
-                                getch();
+                        case GAME_MAIN: // This is basically just the intro to the board
+                                printf("\033[1;1H");
+                                printMainGameScreen(getConsoleWidth(), getConsoleHeight(), gameBoardQuestions);
+                                printf("\033[1;1H");
+                                switch (getch()) {
+                                        case KEY_QUIT:
+                                                gameState = GAME_SPLASH_MENU;
+                                                break;
+                                }
                                 break;
+                        case GAME_BOARD:
+                                printf("\033[1;1H");
+                                printGameBoardScreen(getConsoleWidth(), getConsoleHeight());
+                                printf("\033[1;1H");
+                                break;
+                        case GAME_QUESTION:
+                                break;
+                        case GAME_PLAYERS:
+                                break;
+                       
                 }
         }
         // Reset terminal to saved state
