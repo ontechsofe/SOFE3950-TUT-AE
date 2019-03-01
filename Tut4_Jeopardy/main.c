@@ -10,6 +10,8 @@
 
 // Colour is [FG;BGm
 #define BG_BLUE_FG_WHITE "\033[0m\033[97;44m"
+#define BG_RED_FG_WHITE "\033[0m\033[97;101m"
+#define BG_GREEN_FG_WHITE "\033[0m\033[97;102m"
 #define BG_BLACK_FG_GREEN "\033[0m\033[92;40m"
 #define BG_BLUE_FG_YELLOW "\033[0m\033[93;44m"
 #define BG_BLUE_FG_RED "\033[0m\033[91;44m"
@@ -33,10 +35,10 @@
 #define BUFFER_LEN 256
 
 // game consts
-#define PLAYSOUND 0
+#define PLAYSOUND 1
 
 // Global vars
-enum GAME_STATE {GAME_QUIT, GAME_SPLASH_MENU, GAME_HELP, GAME_PLAYER_SELECTION, GAME_BOARD, GAME_QUESTION, GAME_QUESTION_ENTRY} GAME_STATE;
+enum GAME_STATE {GAME_QUIT, GAME_SPLASH_MENU, GAME_HELP, GAME_PLAYER_SELECTION, GAME_BOARD, GAME_QUESTION, GAME_QUESTION_ENTRY, GAME_QUESTION_INCORRECT, GAME_QUESTION_CORRECT} GAME_STATE;
 
 struct Player {
         char name[BUFFER_LEN];
@@ -252,7 +254,7 @@ void printPlayerConfirmScreen(int width, int height, int numPlayers, struct Play
         VERTICAL_PADDING((height/2) - (8 + tablePadding));
 }
 
-void printGameBoard(int width, int height, int selectedX, int selectedY, char theBoard[7][7][BUFFER_LEN]) {
+void printGameBoard(int width, int height, int selectedX, int selectedY, char theBoard[7][7][BUFFER_LEN], int stats[7][7]) {
         printf("%s", BG_BLUE_FG_WHITE);
         int w = width / 6;
         VERTICAL_PADDING(5);
@@ -263,25 +265,24 @@ void printGameBoard(int width, int height, int selectedX, int selectedY, char th
         VERTICAL_PADDING(5);
         for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 6; j++) {
-                        if (i == selectedY && j == selectedX) {
-                                printf("%s", BG_BLUE_FG_RED);
+                        if (stats[j][i] == 0) {
+                                if (i == selectedY && j == selectedX) {
+                                        printf("%s", BG_BLUE_FG_RED);
+                                }
+                                printf("%-*d", w, (200 * (i+1)));
+                                printf("%s", BG_BLUE_FG_WHITE);
+                        } else {
+                                printf("%-*s", w, "DONE");
                         }
-                        printf("%-*d", w, (200 * (i+1)));
-                        printf("%s", BG_BLUE_FG_WHITE);
                 }
                 printf("\n");
                 VERTICAL_PADDING(5);
         }
 }
 
-void printMainGameScreen(int width, int height, int selectedX, int selectedY, char theBoard[7][7][BUFFER_LEN]) {
-        printf("%s", BG_BLUE_FG_WHITE);
-        printGameBoard(width, height, selectedX, selectedY, theBoard);
-}
-
-void printGameBoardScreen(int width, int height, int selectedX, int selectedY, char theBoard[7][7][BUFFER_LEN]) {
+void printGameBoardScreen(int width, int height, int selectedX, int selectedY, char theBoard[7][7][BUFFER_LEN], int stats[7][7]) {
         printf("%s\n", BG_BLUE_FG_WHITE);
-        printGameBoard(width, height, selectedX, selectedY, theBoard);
+        printGameBoard(width, height, selectedX, selectedY, theBoard, stats);
 }
 
 void printQuestionScreen(int width, int height, char* question) {
@@ -305,6 +306,24 @@ void printQuestionEntryScreen(int width, int height, char* question, char respon
         VERTICAL_PADDING(3);
         center("Press [ENTER] to confirm answer", width, BG_PURPLE_FG_WHITE, 0, 0);
         VERTICAL_PADDING((height/2) - 10);
+}
+
+void printCorrectAnswerScreen(int width, int height) {
+        printf("%s\n", BG_GREEN_FG_WHITE);
+        VERTICAL_PADDING((height/2));
+        center("That's correct!", width, BG_GREEN_FG_WHITE, 0, 0);
+        VERTICAL_PADDING(5);
+        center("Press [ENTER] to return to board", width, BG_GREEN_FG_WHITE, 0, 0);
+        VERTICAL_PADDING((height/2) - 7);
+}
+
+void printIncorrectAnswerScreen(int width, int height) {
+        printf("%s\n", BG_RED_FG_WHITE);
+        VERTICAL_PADDING((height/2));
+        center("That's Incorrect!", width, BG_RED_FG_WHITE, 0, 0);
+        VERTICAL_PADDING(5);
+        center("Press [ENTER] to return to board", width, BG_RED_FG_WHITE, 0, 0);
+        VERTICAL_PADDING((height/2) - 7);
 }
 
 int main(int argc, char *argv[]) {
@@ -503,8 +522,9 @@ int main(int argc, char *argv[]) {
                                 break;
                         case GAME_BOARD:
                                 printf("\033[1;1H");
-                                printGameBoardScreen(getConsoleWidth(), getConsoleHeight(), boardSelectionX, boardSelectionY, gameBoardQuestions);
+                                printGameBoardScreen(getConsoleWidth(), getConsoleHeight(), boardSelectionX, boardSelectionY, gameBoardQuestions, gameBoardStats);
                                 printf("\033[1;1H");
+                                // char categorySpoken[BUFFER_LEN];
                                 switch (getch()) {
                                         case KEY_UP:
                                                 boardSelectionY--;
@@ -531,6 +551,8 @@ int main(int argc, char *argv[]) {
                                                 }
                                                 break;
                                         case KEY_ENTER:
+                                                // sprintf(categorySpoken, "%s for $%d", gameBoardQuestions[boardSelectionX][0], (boardSelectionX + 1) * 200);
+                                                // sayThis(categorySpoken);
                                                 gameState = GAME_QUESTION;
                                                 break;
                                 }
@@ -539,24 +561,29 @@ int main(int argc, char *argv[]) {
                                 printf("\033[1;1H");
                                 printQuestionScreen(getConsoleWidth(), getConsoleHeight(), gameBoardQuestions[boardSelectionX][boardSelectionY + 1]);
                                 printf("\033[1;1H");
+                                sayThis(gameBoardQuestions[boardSelectionX][boardSelectionY + 1]);
                                 switch (getch()) {
                                         case 97:
                                                 playerResponseSelect = 1;
+                                                sayThis(players[0].name);
                                                 gameState = GAME_QUESTION_ENTRY;
                                                 currentPlayerResponse[0] = '\0';
                                                 break;
                                         case 102:
                                                 playerResponseSelect = 2;
+                                                sayThis(players[1].name);
                                                 gameState = GAME_QUESTION_ENTRY;
                                                 currentPlayerResponse[0] = '\0';
                                                 break;
                                         case 104:
                                                 playerResponseSelect = 3;
+                                                sayThis(players[2].name);
                                                 gameState = GAME_QUESTION_ENTRY;
                                                 currentPlayerResponse[0] = '\0';
                                                 break;
                                         case 108:
                                                 playerResponseSelect = 4;
+                                                sayThis(players[3].name);
                                                 gameState = GAME_QUESTION_ENTRY;
                                                 currentPlayerResponse[0] = '\0';
                                                 break;
@@ -572,7 +599,21 @@ int main(int argc, char *argv[]) {
                                 char c = getch();
                                 switch (c) {
                                         case KEY_ENTER:
-                                                // Do something with the answer
+                                                printf(""); // Stupid grammar rules
+                                                int isCorrect = 0;
+                                                char *token = strtok(currentPlayerResponse, " ");
+                                                while(token != NULL) {
+                                                        if (strstr(token, gameBoardAnswers[boardSelectionX][boardSelectionY + 1])) {
+                                                                isCorrect = 1;
+                                                        }
+                                                        token = strtok(NULL, " ");
+                                                }
+                                                if (isCorrect == 1) {
+                                                        gameState = GAME_QUESTION_CORRECT;
+                                                } else {
+                                                        gameState = GAME_QUESTION_INCORRECT;
+                                                }
+                                                gameBoardStats[boardSelectionX][boardSelectionY] = 1;
                                                 break;
                                         default:
                                                 if (((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c == 32) && strlen(currentPlayerResponse) <= 30) {
@@ -585,6 +626,24 @@ int main(int argc, char *argv[]) {
                                                 break;
                                 }
                                 break;
+                        case GAME_QUESTION_INCORRECT:
+                                printf("\033[1;1H");
+                                printIncorrectAnswerScreen(getConsoleWidth(), getConsoleHeight());
+                                printf("\033[1;1H");
+                                sayThis("That is wrong!");
+                                getch();
+                                gameState = GAME_BOARD;
+                                break;
+                                
+                        case GAME_QUESTION_CORRECT:
+                                printf("\033[1;1H");
+                                printCorrectAnswerScreen(getConsoleWidth(), getConsoleHeight());
+                                printf("\033[1;1H");
+                                sayThis("That is correct!");
+                                getch();
+                                gameState = GAME_BOARD;
+                                break;
+
                 }
         }
         // Reset terminal to saved state

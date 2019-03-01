@@ -1,34 +1,34 @@
-WORDS THAT SHOULD RHYME
-To push someone violently & to take something away|*|shove & remove
-The highest singing voice & a fissure in the earth's crust|*|soprano & volcano
-To send someone away forever & a breakfast pastry|*|banish & Danish
-A watercraft & a person such as Prime Minister Tihomir Oreskovic|*|a boat & a Croat
-Full-grown & the physical world including all living things|*|mature & nature
-PLAYTIME WITH SHAKESPEARE
-"The M of V"|*|The Merchant of Venice
-"M for M"|*|Measure for Measure
-With action at Agincourt, "H the F"|*|Henry V
-"A Y L I"|*|As You Like It
-"T of A"|*|Timon of Athens
-SPOT THE CANADIAN
+PROGRAMMING LANGUAGES
+This computer programming language was designed by a committee of scientists and the first release was introduced in 1958|*|algol
+The aim of the language was to help with translating mathematical formulas into machine understandable code|*|fortran
+Dennis M. Ritchie, an employee of AT&T, came up with this programming language|*|c
+The original name for this language was Oak|*|java
+This "reptilian" language that was inspired by Guido van Rossum's favourite TV show|*|python
+CATEGORY
 Q1|*|A1
 Q2|*|A2
 Q3|*|A3
 Q4|*|A4
 Q5|*|A5
-CONTAINERS
+CATEGORY
+Q1|*|A1
+Q2|*|A2
+Q3|*|A3
+Q4|*|A4
+Q5|*|A5
+CATEGORY
 Q1|*|A
 Q2|*|A
 Q3|*|A
 Q4|*|A
 Q5|*|A
-U.S. GEOGRAPHY
+CATEGORY
 Q1|*|A
 Q2|*|A
 Q3|*|A
 Q4|*|A
 Q5|*|A
-AUDRA McDONALD ON BROADWAY
+CATEGORY
 Q|*|A
 Q|*|A
 Q|*|A
