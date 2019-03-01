@@ -42,3 +42,88 @@ Q|*|A
 Q|*|A
 Q|*|A
 Q|*|A
+
+
+
+
+
+
+int di = (width - 2) / 6;
+        int hi = (height - 8) / 6;
+        int padding = (width - ((di)*6))/2;
+        int realWidth = di * 6;
+        int realHeight = hi * 6;
+        int widthDiv = (realWidth - 2) / 6;
+        int heightDiv = (realHeight) / 6;
+        VERTICAL_PADDING(2);
+        center("JEOPARDY GAME BOARD", width, BG_BLUE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING(2);
+        // center("ETHAN, you are picking.", width, BG_BLUE_FG_WHITE, 0, 0);
+        HORIZONTAL_PADDING(padding);
+        printf("╔");
+        for (int i = 0; i < realWidth - 2; i++) {
+                if (i % widthDiv == 0 && i != 0 && (i != (widthDiv * 6))) { printf("╤"); } else { printf("═"); }
+        }
+        printf("╗");
+        HORIZONTAL_PADDING(padding);
+        printf("\n");
+        for (int i = 0; i < heightDiv; i++) {
+                HORIZONTAL_PADDING(padding);
+                printf("║");
+                int isPrintTitle = 0;
+                for (int j = 0; j < realWidth - 2; j++) {
+                        if (j % widthDiv == 0 && j != 0 && (j != (widthDiv * 6))) { 
+                                printf("│"); 
+                                isPrintTitle = 0;
+                        } else { 
+                                if (isPrintTitle != 1) {
+                                        if (i == 3) {
+                                                isPrintTitle = 1;
+                                                centerNoNewline(" CAT ", widthDiv - 1, BG_BLUE_FG_WHITE, 0, widthDiv);
+                                        } else {
+                                                printf(" "); 
+                                        }
+                                }
+                        }
+                }
+                printf("║");
+                HORIZONTAL_PADDING(padding);
+                printf("\n");
+        }
+        HORIZONTAL_PADDING(padding);
+        printf("╟");
+        for (int j = 0; j < realWidth - 2; j++) {
+                if (j % widthDiv == 0 && j != 0 && (j != (widthDiv * 6))) { printf("┼"); } else { printf("─"); }
+        }
+        printf("╢");
+        HORIZONTAL_PADDING(padding);
+        printf("\n");
+        for (int k = 0; k < 5; k++) {
+                for (int i = 0; i < heightDiv; i++) {
+                        HORIZONTAL_PADDING(padding);
+                        printf("║");
+                        for (int j = 0; j < realWidth - 2; j++) {
+                                if (j % widthDiv == 0 && j != 0 && (j != (widthDiv * 6))) { printf("│"); } else { printf(" "); }
+                        }
+                        printf("║");
+                        HORIZONTAL_PADDING(padding);
+                        printf("\n");
+                }
+                if (k != 4) {
+                        HORIZONTAL_PADDING(padding);
+                        printf("╟");
+                        for (int j = 0; j < realWidth - 2; j++) {
+                                if (j % widthDiv == 0 && j != 0 && (j != (widthDiv * 6))) { printf("┼"); } else { printf("─"); }
+                        }
+                        printf("╢");
+                        HORIZONTAL_PADDING(padding);
+                        printf("\n");
+                }
+        }
+        HORIZONTAL_PADDING(padding);
+        printf("╚");
+        for (int i = 0; i < realWidth - 2; i++) {
+                if (i % widthDiv == 0 && i != 0 && (i != (widthDiv * 6))) { printf("╧"); } else { printf("═"); }
+        }
+        printf("╝");
+        HORIZONTAL_PADDING(padding);
