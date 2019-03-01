@@ -36,7 +36,7 @@
 #define PLAYSOUND 0
 
 // Global vars
-enum GAME_STATE {GAME_QUIT, GAME_SPLASH_MENU, GAME_HELP, GAME_PLAYER_SELECTION, GAME_BOARD,GAME_QUESTION,GAME_PLAYERS} GAME_STATE;
+enum GAME_STATE {GAME_QUIT, GAME_SPLASH_MENU, GAME_HELP, GAME_PLAYER_SELECTION, GAME_BOARD, GAME_QUESTION, GAME_QUESTION_ENTRY} GAME_STATE;
 
 struct Player {
         char name[BUFFER_LEN];
@@ -45,7 +45,7 @@ struct Player {
 
 char *splashGameMenu[] = {"Start Game", "HELP", "Quit"};
 
-// adding getch because linux doesn't have conio
+// adding getch because linux doesn't have conio :(
 int getch(void) {
     struct termios oldattr, newattr;
     int ch;
@@ -284,6 +284,29 @@ void printGameBoardScreen(int width, int height, int selectedX, int selectedY, c
         printGameBoard(width, height, selectedX, selectedY, theBoard);
 }
 
+void printQuestionScreen(int width, int height, char* question) {
+        printf("%s", BG_BLUE_FG_WHITE);
+        VERTICAL_PADDING((height/2) - 1)
+        center(question, width, BG_BLUE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING(4);
+        center("╔═══════╗     ╔═══════╗     ╔═══════╗     ╔═══════╗", width, BG_BLUE_FG_YELLOW, 1, 51);
+        center("║   A   ║     ║   F   ║     ║   H   ║     ║   L   ║", width, BG_BLUE_FG_YELLOW, 1, 51);
+        center("╚═══════╝     ╚═══════╝     ╚═══════╝     ╚═══════╝", width, BG_BLUE_FG_YELLOW, 1, 51);
+        printf("%s", BG_BLUE_FG_WHITE);
+        VERTICAL_PADDING((height/2))
+}
+
+void printQuestionEntryScreen(int width, int height, char* question, char response[BUFFER_LEN]) {
+        printf("%s", BG_PURPLE_FG_WHITE);
+        VERTICAL_PADDING((height/2));
+        center(question, width, BG_PURPLE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING(4);
+        printTextbox(response, width, 60);
+        VERTICAL_PADDING(3);
+        center("Press [ENTER] to confirm answer", width, BG_PURPLE_FG_WHITE, 0, 0);
+        VERTICAL_PADDING((height/2) - 10);
+}
+
 int main(int argc, char *argv[]) {
         printf("\033[?47h\n");
 
@@ -310,6 +333,9 @@ int main(int argc, char *argv[]) {
 
         int boardSelectionX = 0;
         int boardSelectionY = 0;
+
+        int playerResponseSelect = 0;
+        char currentPlayerResponse[BUFFER_LEN];
 
         for (int i = 0; i < 4; i++) {
                 players[i].score = 0;
@@ -395,10 +421,6 @@ int main(int argc, char *argv[]) {
                                                         case 2: gameState = GAME_QUIT; break;
                                                 }
                                                 break;
-                                        // default:
-                                        //         printf("\n\n[%d]\n\n", ch);
-                                        //         getch();
-                                        //         break;
                                 }
                                 printf(".\033[0m\033[2J");
                                 break;
@@ -470,6 +492,8 @@ int main(int argc, char *argv[]) {
                                                                 break;
                                                         case KEY_ENTER:
                                                                 gameState = GAME_BOARD;
+                                                                boardSelectionY = 0;
+                                                                boardSelectionX = 0;
                                                                 sayThis("Welcome everyone. It's time to play jeopardy. Let's look at the categories.");
                                                                 break;
                                                 }
@@ -507,31 +531,60 @@ int main(int argc, char *argv[]) {
                                                 }
                                                 break;
                                         case KEY_ENTER:
+                                                gameState = GAME_QUESTION;
                                                 break;
                                 }
                                 break;
                         case GAME_QUESTION:
                                 printf("\033[1;1H");
-                                // printGameBoardScreen(getConsoleWidth(), getConsoleHeight(), boardSelectionX, boardSelectionY, gameBoardQuestions);
+                                printQuestionScreen(getConsoleWidth(), getConsoleHeight(), gameBoardQuestions[boardSelectionX][boardSelectionY + 1]);
                                 printf("\033[1;1H");
                                 switch (getch()) {
-                                        case 49:
-                                                // selectedNumOfPlayers = 1;
+                                        case 97:
+                                                playerResponseSelect = 1;
+                                                gameState = GAME_QUESTION_ENTRY;
+                                                currentPlayerResponse[0] = '\0';
                                                 break;
-                                        case 50:
-                                                // selectedNumOfPlayers = 2;
+                                        case 102:
+                                                playerResponseSelect = 2;
+                                                gameState = GAME_QUESTION_ENTRY;
+                                                currentPlayerResponse[0] = '\0';
                                                 break;
-                                        case 51:
-                                                // selectedNumOfPlayers = 3;
+                                        case 104:
+                                                playerResponseSelect = 3;
+                                                gameState = GAME_QUESTION_ENTRY;
+                                                currentPlayerResponse[0] = '\0';
                                                 break;
-                                        case 52:
-                                                // selectedNumOfPlayers = 4;
+                                        case 108:
+                                                playerResponseSelect = 4;
+                                                gameState = GAME_QUESTION_ENTRY;
+                                                currentPlayerResponse[0] = '\0';
+                                                break;
+                                        case KEY_QUIT:
+                                                gameState = GAME_BOARD;
                                                 break;
                                 }
                                 break;
-                        case GAME_PLAYERS:
+                        case GAME_QUESTION_ENTRY:
+                                printf("\033[1;1H");
+                                printQuestionEntryScreen(getConsoleWidth(), getConsoleHeight(), gameBoardQuestions[boardSelectionX][boardSelectionY + 1], currentPlayerResponse);
+                                printf("\033[1;1H");
+                                char c = getch();
+                                switch (c) {
+                                        case KEY_ENTER:
+                                                // Do something with the answer
+                                                break;
+                                        default:
+                                                if (((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c == 32) && strlen(currentPlayerResponse) <= 30) {
+                                                        char cpbuf[BUFFER_LEN] = "";
+                                                        strcpy(cpbuf, currentPlayerResponse);
+                                                        sprintf(currentPlayerResponse, "%s%c", cpbuf, c);
+                                                } else if (c == 127) {
+                                                        currentPlayerResponse[strlen(currentPlayerResponse) - 1] = '\0';
+                                                }
+                                                break;
+                                }
                                 break;
-                       
                 }
         }
         // Reset terminal to saved state
