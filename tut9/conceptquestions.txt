@@ -1,0 +1,7 @@
+1) Open MP is an API meant for directing multi threaded, shared memory parallelism. the benefits of using it are standardization, ease of use, and portability
+2)#pragma is a complier directive, they are instructions for the complier.
+3)#pragma omp parallel
+4) reduction prevents data races when there is a shared variable that is modified in each iteration
+5) critical means that the code within is executed one at a time. Private means that there is a seperate copy of the variable declared in each thread
+
+For application question 3: serial time was 0.057 seconds, while parallel time was 0.022 seconds
