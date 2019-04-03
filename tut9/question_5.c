@@ -9,7 +9,6 @@ int main (int argc, char *argv[])
 		printf("Usage: question5 [nthreads]\n");
 	}
 
-	int num = 0;
 	int nthreads = atoi(argv[1]);
 	// set a variable n to 100 million	
 	int n = 100000000;
